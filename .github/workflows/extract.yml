@@ -40,10 +40,15 @@ jobs:
           yt-dlp --version
 
       - name: Setup cookies
-        if: ${{ secrets.YOUTUBE_COOKIES != '' }}
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
-          echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
-          echo "Cookies file created"
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            echo "$YOUTUBE_COOKIES" > cookies.txt
+            echo "Cookies file created"
+          else
+            echo "No cookies secret found"
+          fi
 
       - name: Add channel if provided
         if: github.event.inputs.channel_url != ''
