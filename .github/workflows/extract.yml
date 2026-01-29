@@ -39,6 +39,12 @@ jobs:
           pip install yt-dlp
           yt-dlp --version
 
+      - name: Setup cookies
+        if: ${{ secrets.YOUTUBE_COOKIES != '' }}
+        run: |
+          echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+          echo "Cookies file created"
+
       - name: Add channel if provided
         if: github.event.inputs.channel_url != ''
         run: |

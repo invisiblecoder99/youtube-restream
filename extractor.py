@@ -8,7 +8,6 @@ Outputs raw m3u8 URLs that can be played directly
 
 import subprocess
 import json
-import re
 import os
 import sys
 from datetime import datetime, timezone
@@ -16,6 +15,14 @@ from datetime import datetime, timezone
 CHANNELS_FILE = "channels.json"
 OUTPUT_FILE = "streams.json"
 M3U_FILE = "youtube.m3u"
+COOKIES_FILE = "cookies.txt"
+
+
+def get_cookies_args():
+    """Return cookies arguments if cookies.txt exists"""
+    if os.path.exists(COOKIES_FILE):
+        return ["--cookies", COOKIES_FILE]
+    return []
 
 
 def extract_stream_url(youtube_url):
@@ -26,6 +33,8 @@ def extract_stream_url(youtube_url):
             if not youtube_url.endswith("/live"):
                 youtube_url = youtube_url.rstrip("/") + "/live"
 
+        cookies_args = get_cookies_args()
+
         # Use yt-dlp to extract the HLS manifest URL
         cmd = [
             "yt-dlp",
@@ -33,6 +42,7 @@ def extract_stream_url(youtube_url):
             "--print",
             "%(manifest_url)s",
             "--force-ipv4",
+            *cookies_args,
             youtube_url,
         ]
 
@@ -56,6 +66,7 @@ def extract_stream_url(youtube_url):
             "--print",
             "%(url)s",
             "--force-ipv4",
+            *cookies_args,
             youtube_url,
         ]
 
@@ -179,6 +190,12 @@ def main():
         print(f"yt-dlp version: {result.stdout.strip()}")
     except:
         print("WARNING: yt-dlp not found!")
+
+    # Check cookies
+    if os.path.exists(COOKIES_FILE):
+        print(f"Using cookies from {COOKIES_FILE}")
+    else:
+        print("No cookies.txt found (some streams may require login)")
 
     # Load or create channels
     channels = load_channels()
