@@ -35,7 +35,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install yt-dlp
+          yt-dlp --version
 
       - name: Add channel if provided
         if: github.event.inputs.channel_url != ''
