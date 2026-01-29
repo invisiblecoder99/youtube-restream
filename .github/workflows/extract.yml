@@ -1,0 +1,79 @@
+name: YouTube Stream Extractor
+
+on:
+  # Run every 2 hours (URLs expire ~6-12 hours)
+  schedule:
+    - cron: '0 */2 * * *'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      channel_url:
+        description: 'YouTube URL to add (optional)'
+        required: false
+        type: string
+
+  # Trigger on push to update channels
+  push:
+    paths:
+      - 'channels.json'
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Add channel if provided
+        if: github.event.inputs.channel_url != ''
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          url = "${{ github.event.inputs.channel_url }}"
+          
+          try:
+              with open('channels.json', 'r') as f:
+                  channels = json.load(f)
+          except:
+              channels = []
+          
+          # Check if already exists
+          if not any(c.get('url') == url for c in channels):
+              channels.append({
+                  "id": f"channel_{len(channels)+1}",
+                  "name": f"Channel {len(channels)+1}",
+                  "url": url,
+                  "logo": "",
+                  "group": "YouTube"
+              })
+              with open('channels.json', 'w') as f:
+                  json.dump(channels, f, indent=2)
+              print(f"Added: {url}")
+          else:
+              print(f"Already exists: {url}")
+          EOF
+
+      - name: Extract YouTube streams
+        run: python3 extractor.py
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update streams $(date -u +%Y-%m-%dT%H:%M:%SZ)" && git push)
